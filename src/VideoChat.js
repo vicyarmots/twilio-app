@@ -1,53 +1,44 @@
 import React, { useState, useCallback, useEffect } from "react";
-import Video from "twilio-video";
 import Lobby from "./Lobby";
 import Room from "./Room";
+import { useDispatch } from "react-redux";
+
+//selectors
+import { useSelector } from "react-redux";
+// user actions
+import { setUsername, setUserToken } from "./redux/user/actions";
+import { setVideoCall } from "./redux/room/middleware";
 
 const VideoChat = () => {
-  const [username, setUsername] = useState("");
-  const [roomName, setRoomName] = useState("");
-  const [room, setRoom] = useState(null);
-  const [connecting, setConnecting] = useState(false);
+  const [state, setState] = useState({
+    username: "",
+    room: null,
+    roomName: "",
+    connection: false,
+    token: Math.random() * 1000 + "key",
+  });
 
-  const handleUsernameChange = useCallback((event) => {
-    setUsername(event.target.value);
-  }, []);
+  const getRoom = useSelector((state) => state.roomReducer.room);
+  const getRoomName = useSelector((state) => state.roomReducer.name);
+  const getConnection = useSelector((state) => state.roomReducer.connection);
 
-  const handleRoomNameChange = useCallback((event) => {
-    setRoomName(event.target.value);
-  }, []);
+  console.log(getRoom, getRoomName, getConnection);
 
-  const handleSubmit = useCallback(
-    async (event) => {
-      event.preventDefault();
-      setConnecting(true);
-      const data = await fetch("/video/token", {
-        method: "POST",
-        body: JSON.stringify({
-          identity: username,
-          room: roomName,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }).then((res) => res.json());
-      Video.connect(data.token, {
-        name: roomName,
-      })
-        .then((room) => {
-          setConnecting(false);
-          setRoom(room);
-        })
-        .catch((err) => {
-          console.error(err);
-          setConnecting(false);
-        });
-    },
-    [roomName, username]
-  );
+  const dispatch = useDispatch();
+
+  // const handleStateChange = useCallback((event) => {
+  //   setState(event.target.value);
+  // }, []);
+
+  const handleStateChange = (event) => console.log(event.target.value);
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    dispatch(setUsername(state.name), setUserToken(state.token));
+    dispatch(setVideoCall(state.username, state.roomName));
+  };
 
   const handleLogout = useCallback(() => {
-    setRoom((prevRoom) => {
+    setState((prevRoom) => {
       if (prevRoom) {
         prevRoom.localParticipant.tracks.forEach((trackPub) => {
           trackPub.track.stop();
@@ -59,12 +50,12 @@ const VideoChat = () => {
   }, []);
 
   useEffect(() => {
-    if (room) {
+    if (state.room) {
       const tidyUp = (event) => {
         if (event.persisted) {
           return;
         }
-        if (room) {
+        if (state.room) {
           handleLogout();
         }
       };
@@ -75,22 +66,25 @@ const VideoChat = () => {
         window.removeEventListener("beforeunload", tidyUp);
       };
     }
-  }, [room, handleLogout]);
+  }, [state.room, handleLogout]);
 
   let render;
-  if (room) {
+  if (state.room) {
     render = (
-      <Room roomName={roomName} room={room} handleLogout={handleLogout} />
+      <Room
+        roomName={state.roomName}
+        room={state.room}
+        handleLogout={handleLogout}
+      />
     );
   } else {
     render = (
       <Lobby
-        username={username}
-        roomName={roomName}
-        handleUsernameChange={handleUsernameChange}
-        handleRoomNameChange={handleRoomNameChange}
+        username={state.username}
+        roomName={state.roomName}
+        handleStateChange={handleStateChange}
         handleSubmit={handleSubmit}
-        connecting={connecting}
+        connecting={state.connection}
       />
     );
   }
