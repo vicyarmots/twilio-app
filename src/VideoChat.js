@@ -6,17 +6,21 @@ import { useDispatch } from "react-redux";
 //selectors
 import { useSelector } from "react-redux";
 // user actions
-import { setUsername, setUserToken } from "./redux/user/actions";
+
 import { setVideoCall } from "./redux/room/middleware";
+import { setUserName } from "./redux/user/actions";
 
 const VideoChat = () => {
-  const [state, setState] = useState({
+  const [value, setValue] = useState({
     username: "",
     room: null,
     roomName: "",
     connection: false,
     token: Math.random() * 1000 + "key",
   });
+
+  const [username, setUsername] = useState("");
+  const [roomName, setRoomName] = useState("");
 
   const getRoom = useSelector((state) => state.roomReducer.room);
   const getRoomName = useSelector((state) => state.roomReducer.name);
@@ -26,19 +30,21 @@ const VideoChat = () => {
 
   const dispatch = useDispatch();
 
-  // const handleStateChange = useCallback((event) => {
-  //   setState(event.target.value);
-  // }, []);
+  const handleUsernameChange = useCallback((event) => {
+    setUsername(event.target.value);
+  }, []);
 
-  const handleStateChange = (event) => console.log(event.target.value);
+  const handleRoomNameChange = useCallback((event) => {
+    setRoomName(event.target.value);
+  }, []);
+
   const handleSubmit = (event) => {
     event.preventDefault();
-    dispatch(setUsername(state.name), setUserToken(state.token));
-    dispatch(setVideoCall(state.username, state.roomName));
+    dispatch(setVideoCall(value.username, value.roomName));
   };
 
   const handleLogout = useCallback(() => {
-    setState((prevRoom) => {
+    setValue((prevRoom) => {
       if (prevRoom) {
         prevRoom.localParticipant.tracks.forEach((trackPub) => {
           trackPub.track.stop();
@@ -50,12 +56,12 @@ const VideoChat = () => {
   }, []);
 
   useEffect(() => {
-    if (state.room) {
+    if (value.room) {
       const tidyUp = (event) => {
         if (event.persisted) {
           return;
         }
-        if (state.room) {
+        if (value.room) {
           handleLogout();
         }
       };
@@ -66,25 +72,26 @@ const VideoChat = () => {
         window.removeEventListener("beforeunload", tidyUp);
       };
     }
-  }, [state.room, handleLogout]);
+  }, [value.room, handleLogout]);
 
   let render;
-  if (state.room) {
+  if (value.room) {
     render = (
       <Room
-        roomName={state.roomName}
-        room={state.room}
+        roomName={value.roomName}
+        room={value.room}
         handleLogout={handleLogout}
       />
     );
   } else {
     render = (
       <Lobby
-        username={state.username}
-        roomName={state.roomName}
-        handleStateChange={handleStateChange}
+        username={username}
+        roomName={roomName}
+        handleUsernameChange={handleUsernameChange}
+        handleRoomNameChange={handleRoomNameChange}
         handleSubmit={handleSubmit}
-        connecting={state.connection}
+        connecting={value.connection}
       />
     );
   }

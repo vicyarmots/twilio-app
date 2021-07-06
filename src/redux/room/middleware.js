@@ -16,13 +16,13 @@ export const setVideoCall = (username, roomName) => async (dispatch) => {
     };
     const response = await axios.post("/video/token", options);
 
-    const data = response.JSON();
+    const data = response.data;
     console.log(data);
     Video.connect(data.token, {
       name: roomName,
     })
       .then((room) => {
-        dispatch(setConnection(false));
+        dispatch(setConnection(true));
         dispatch(setRoom(room));
       })
       .catch((err) => {
